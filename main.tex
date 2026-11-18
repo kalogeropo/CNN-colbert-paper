@@ -1,0 +1,384 @@
+%% 
+%% Copyright 2007-2025 Elsevier Ltd
+%% 
+%% This file is part of the 'Elsarticle Bundle'.
+%% ---------------------------------------------
+%% 
+%% It may be distributed under the conditions of the LaTeX Project Public
+%% License, either version 1.3 of this license or (at your option) any
+%% later version.  The latest version of this license is in
+%%    http://www.latex-project.org/lppl.txt
+%% and version 1.3 or later is part of all distributions of LaTeX
+%% version 1999/12/01 or later.
+%% 
+%% The list of all files belonging to the 'Elsarticle Bundle' is
+%% given in the file `manifest.txt'.
+%% 
+%% Template article for Elsevier's document class `elsarticle'
+%% with harvard style bibliographic references
+
+% \documentclass[preprint,12pt,authoryear]{elsarticle}
+\documentclass[preprint,5p,times,twocolumn,authoryear]{elsarticle}
+
+%% Use the option review to obtain double line spacing
+%% \documentclass[authoryear,preprint,review,12pt]{elsarticle}
+
+%% Use the options 1p,twocolumn; 3p; 3p,twocolumn; 5p; or 5p,twocolumn
+%% for a journal layout:
+%% \documentclass[final,1p,times,authoryear]{elsarticle}
+%% \documentclass[final,1p,times,twocolumn,authoryear]{elsarticle}
+%% \documentclass[final,3p,times,authoryear]{elsarticle}
+%% \documentclass[final,3p,times,twocolumn,authoryear]{elsarticle}
+%% \documentclass[final,5p,times,authoryear]{elsarticle}
+%% \documentclass[final,5p,times,twocolumn,authoryear]{elsarticle}
+
+%% For including figures, graphicx.sty has been loaded in
+%% elsarticle.cls. If you prefer to use the old commands
+%% please give \usepackage{epsfig}
+
+%% The amssymb package provides various useful mathematical symbols
+\usepackage{amssymb}
+%% The amsmath package provides various useful equation environments.
+\usepackage{amsmath}
+%% The amsthm package provides extended theorem environments
+\usepackage{amsthm}
+
+%% The lineno packages adds line numbers. Start line numbering with
+%% \begin{linenumbers}, end it with \end{linenumbers}. Or switch it on
+%% for the whole article with \linenumbers.
+%% \usepackage{lineno}
+
+\journal{Expert Systems With Applications}
+
+\begin{document}
+
+\begin{frontmatter}
+
+%% Title, authors and addresses
+
+%% use the tnoteref command within \title for footnotes;
+%% use the tnotetext command for theassociated footnote;
+%% use the fnref command within \author or \affiliation for footnotes;
+%% use the fntext command for theassociated footnote;
+%% use the corref command within \author for corresponding author footnotes;
+%% use the cortext command for theassociated footnote;
+%% use the ead command for the email address,
+%% and the form \ead[url] for the home page:
+%% \title{Title\tnoteref{label1}}
+%% \tnotetext[label1]{}
+%% \author{Name\corref{cor1}\fnref{label2}}
+%% \ead{email address}
+%% \ead[url]{home page}
+%% \fntext[label2]{}
+%% \cortext[cor1]{}
+%% \affiliation{organization={},
+%%            addressline={}, 
+%%            city={},
+%%            postcode={}, 
+%%            state={},
+%%            country={}}
+%% \fntext[label3]{}
+
+\title{Beyond MaxSim: CNN-Based Aggregation of ColBERT Similarity Matrices for Document Re-ranking} %% Article title
+
+%% use optional labels to link authors explicitly to addresses:
+%% \author[label1,label2]{}
+%% \affiliation[label1]{organization={},
+%%             addressline={},
+%%             city={},
+%%             postcode={},
+%%             state={},
+%%             country={}}
+%%
+%% \affiliation[label2]{organization={},
+%%             addressline={},
+%%             city={},
+%%             postcode={},
+%%             state={},
+%%             country={}}
+
+\author[ceid]{Agorakis Bompotas} %% Author name
+
+\author[ceid]{Nikitas Rigas Kalogeropoulos} %% Author name
+
+\author[ceid]{Orestis Antonis Makris} %% Author name
+
+\author[ceid]{Christos Makris} %% Author name
+
+%% Author affiliation
+\affiliation[ceid]{organization={Computer Engineering and Informatics Department, University of Patras},%Department and Organization
+            addressline={University of Patras Campus}, 
+            city={Rio},
+            postcode={26504}, 
+            state={Achaia},
+            country={Greece}}
+
+%% Abstract
+\begin{abstract}
+%% Text of abstract
+Late-interaction neural retrieval models, such as ColBERT, have significantly improved information retrieval by enabling fine-grained token-level matching between queries and documents. However, the final relevance estimation in ColBERT is still mainly based on MaxSim aggregation, which compresses the rich query–document interaction structure into a single score. This paper introduces a novel CNN-based re-ranking approach that moves beyond this conventional aggregation mechanism by exploiting the full ColBERT similarity matrix as a two-dimensional relevance signal. Instead of treating token interactions only as independent maximum-similarity matches, the proposed method interprets the similarity matrix as a structured interaction map, where local and global patterns can reveal deeper semantic relationships between the query and the document.
+
+The main novelty of this work lies in the transformation of ColBERT’s internal similarity representation into an image-like input for convolutional neural networks. This allows the model to learn spatial relevance patterns that are not explicitly captured by MaxSim. We integrate this CNN-based relevance estimator into the ColBERT pipeline as a re-ranking component and evaluate it across different ColBERT fine-tuning levels, including untuned and tuned configurations. The experimental results show that the proposed ColBERT+CNN ranking framework can improve retrieval effectiveness in terms of standard information retrieval metrics such as MAP, Precision@k, and Recall@k. Beyond performance gains, the study offers a new perspective on neural ranking by demonstrating that similarity matrices contain exploitable structural information. This opens a promising direction for learned late-interaction re-ranking, where relevance is estimated not only from token-level maxima but also from the broader geometry of query–document interactions.
+\end{abstract}
+
+%%Graphical abstract
+\begin{graphicalabstract}
+%\includegraphics{grabs}
+\end{graphicalabstract}
+
+%%Research highlights
+\begin{highlights}
+\item Introduces a CNN-based re-ranking approach for ColBERT retrieval.
+\item Exploits ColBERT similarity matrices as structured two-dimensional relevance signals.
+\item Moves beyond MaxSim by learning local and global token-interaction patterns.
+\item Integrates CNN relevance estimation into the ColBERT ranking pipeline.
+\item Evaluates the method across untuned and fine-tuned ColBERT configurations.
+\item Demonstrates that similarity matrices contain exploitable relevance information beyond scalar aggregation.
+\item Opens a new direction for visual-pattern-based late-interaction neural retrieval.
+\end{highlights}
+
+\begin{keyword}
+%% keywords here, in the form: keyword \sep keyword
+
+Information Retrieval \sep
+Neural Information Retrieval \sep
+ColBERT \sep
+Late Interaction \sep
+Similarity Matrices \sep
+Convolutional Neural Networks \sep
+CNN-based Re-ranking \sep
+Relevance Estimation \sep
+Learning to Rank \sep
+MaxSim Aggregation \sep
+Transformer-based Retrieval
+\end{keyword}
+
+\end{frontmatter}
+
+%% Add \usepackage{lineno} before \begin{document} and uncomment 
+%% following line to enable line numbers
+%% \linenumbers
+
+%% main text
+%%
+
+%% Use \section commands to start a section
+\section{Introduction}
+\label{intro}
+%% Labels are used to cross-reference an item using \ref command.
+
+Information Retrieval (IR) has undergone a substantial transformation with the introduction of neural architectures and pre-trained language models (\cite{attention, bert,colbert,pretrained}). Traditional ranking approaches, such as lexical and probabilistic models, rely mainly on surface-level term matching and statistical weighting. Although these methods remain efficient and useful, they often struggle to capture deeper semantic relationships between a user query and a document. The development of transformer-based models, particularly BERT-like architectures, has shifted IR toward contextualized representations, allowing retrieval systems to model meaning beyond exact word overlap.
+
+A broad view of IR models shows that this evolution did not occur as a complete replacement of earlier approaches, but rather as a gradual enrichment of different modeling paradigms. Models, such as the Boolean model (\cite{bool}), the Vector Space Model (\cite{salton_vector_1975}), and latent semantic approaches (\cite{lsi}), represent documents and queries through formal structures such as sets, vectors, or reduced-dimensional spaces, enabling similarity estimation through operations such as term matching, cosine similarity, and matrix factorization. 
+
+However, several extensions of these models have attempted to incorporate additional semantic or structural information into the retrieval process. The set-based model (\cite{setbase1}) introduced concepts from set theory in order to capture term co-occurrences and represent documents beyond simple independent term weighting. Similarly, graph-based approaches, such as the Graph-of-Words model (\cite{gow}), as well as the graph-based extension of the set-based model (\cite{kalogeropoulos2025}), aimed to enrich ranking tasks by modeling structural relationships among terms, documents, or semantic units. Finally the work of \cite{KALOGEROPOULOS_concepts} explored the notion of conceptualization that the LSI first introduced implementing such graphs.  
+
+Probabilistic and language-modeling (\cite{ponte1998language})approaches introduced a different perspective, treating retrieval as a problem of estimating the likelihood that a document could generate or satisfy a given query. These models provided a stronger statistical foundation for ranking, but they were still limited by sparse lexical representations and by their difficulty in capturing complex semantic relations. More recent extensions have attempted to overcome these limitations by incorporating neural networks, graph-based structures, or hybrid combinations of both (\cite{bm25,robertson2009probabilistic}).
+
+
+Neural models enhance IR by learning dense semantic representations and non-linear matching functions (\cite{huang2013learning,guo2016deep,mitra2018introduction,Xiong_2017}), while graph-based approaches can represent documents, terms, entities, and their relationships as interconnected structures, allowing retrieval to exploit both content similarity and relational information (\cite{rousseau2013graph,kalogeropoulos2025}). In this sense, modern neural IR can be understood as part of a broader trajectory in which traditional algebraic and probabilistic models are extended with learned representations, contextual language understanding, and structural knowledge (\cite{mitra2018introduction,bert}). This progression forms the conceptual basis for late-interaction models such as ColBERT, which combine efficient retrieval with fine-grained token-level semantic matching (\cite{colbert}).
+
+Among neural retrieval models, ColBERT (\cite{colbert,v2}) has become a highly influential late-interaction architecture. Its main strength lies in its ability to independently encode queries and documents while preserving fine-grained token-level interactions during scoring. This design provides a balance between the effectiveness of deep contextual matching and the efficiency required for large-scale retrieval. Instead of compressing a whole query or document into a single dense vector, ColBERT keeps multiple token embeddings and computes relevance through token-level similarity comparisons. In this way, it captures richer matching signals than single-vector dense retrieval models.
+
+The main contributions of this work are summarized as follows:
+
+\begin{itemize}
+    \item We propose a CNN-based re-ranking framework that exploits the full token-level similarity matrix produced by ColBERT, instead of relying exclusively on the conventional MaxSim aggregation score.
+
+    \item We interpret ColBERT similarity matrices as two-dimensional relevance maps, where local and global interaction patterns between query and document tokens can be learned through convolutional operations.
+
+    \item We integrate the proposed CNN relevance estimator into the ColBERT retrieval pipeline as a post-retrieval re-ranking component, extending the scoring stage without replacing ColBERT's contextual encoding mechanism.
+
+    \item We evaluate the proposed approach across different ColBERT configurations, including untuned and fine-tuned variants, in order to examine how the quality of the underlying ColBERT representations affects CNN-based relevance estimation.
+
+    \item We provide an empirical analysis of the relationship between MaxSim-based scoring and learned matrix-based scoring, showing that ColBERT similarity matrices contain structural information that can be further exploited for ranking improvement.
+\end{itemize}
+
+\section{Related Work}
+
+\subsection{Classical, Dense, and Learned Sparse Retrieval Models} %%%%%%%%%%%%needs checking! 
+
+Classical information retrieval models provide the foundation for many modern ranking systems. The Vector Space Model represents documents and queries as weighted term vectors, where relevance is commonly estimated through cosine similarity. In this setting, TF-IDF assigns higher weights to terms that are frequent in a document but relatively rare in the overall collection, allowing the ranking function to emphasize discriminative terms rather than common vocabulary (\cite{salton_vector_1975}). Although TF-IDF is simple and efficient, it remains based on sparse lexical overlap and therefore has limited ability to capture semantic similarity when queries and documents use different vocabulary.
+
+BM25 is one of the most widely used probabilistic ranking functions in ad hoc retrieval. It improves over basic term-frequency weighting by introducing term-frequency saturation and document-length normalization, reducing the effect of very frequent terms and compensating for differences in document size (\cite{bm25,robertson2009probabilistic}). Because of its robustness, efficiency, and strong empirical performance, BM25 is often used as a reference lexical model in retrieval experiments.
+
+Pseudo-relevance feedback methods attempt to improve retrieval by expanding or reformulating the original query using information from the initially retrieved documents. RM3 is a relevance-model-based query expansion method in which the top-ranked documents from an initial retrieval stage are treated as pseudo-relevant evidence. Terms from these documents are then used to estimate an expanded query model, which is interpolated with the original query representation (\cite{lavrenko2001relevance}). This allows the retrieval process to include related terms that were not present in the initial query, although its effectiveness depends on the quality of the first-stage ranking.
+
+Language-modeling approaches formulate retrieval as a probability estimation problem. In the Query Likelihood framework, each document is treated as a language model, and documents are ranked according to the probability that their model would generate the query (\cite{ponte1998language}). Since document-level language models are sparse, smoothing is required to avoid assigning zero probability to unseen query terms. Dirichlet smoothing addresses this issue by combining document-specific term statistics with collection-level statistics, with the smoothing strength controlled by a parameter (\cite{zhai2001smoothing}).
+
+Dense retrieval models move away from explicit lexical overlap by encoding queries and documents into continuous vector representations. Sentence-transformer-style bi-encoders produce dense embeddings that can be compared through vector similarity, making them suitable for semantic search and large-scale retrieval using vector indexes (\cite{reimers2019sentencebert}). BGE belongs to this family of general embedding models and provides dense representations trained for retrieval and semantic similarity tasks (\cite{xiao2024cpack}). Such models can capture semantic relatedness beyond exact term matching, but they may also lose fine-grained lexical signals when long or complex texts are compressed into a single vector.
+
+Learned sparse retrieval models attempt to combine the efficiency and interpretability of sparse retrieval with the semantic expansion capabilities of neural language models. SPLADE generates sparse high-dimensional representations for queries and documents by using a masked language model to assign weights to vocabulary terms, including expansion terms that may not appear explicitly in the input text (\cite{formal2021splade}). As a result, SPLADE can operate with inverted indexes like traditional sparse models while benefiting from neural term expansion and learned weighting.
+
+\subsection{Dense Information Retrieval Models}
+Dense information retrieval models emerged as a response to the limitations of sparse lexical matching, where documents and queries are represented mainly through exact term overlap. Instead of relying only on term-frequency statistics, dense retrieval methods map queries and documents into continuous vector spaces, where semantic similarity can be estimated through vector operations such as dot product or cosine similarity. Early representation-learning approaches, including word embeddings such as Word2Vec and GloVe, showed that distributional semantic information can be encoded in dense vector spaces (\cite{w2v,gloveeee}). Later, transformer-based language models, especially BERT, enabled contextualized token and sentence representations, providing a stronger basis for semantic matching in retrieval tasks (\cite{bert,pretrained}).
+
+A major family of dense retrieval systems follows the dual-encoder architecture. In these models, the query and the document are encoded independently, and their relevance is estimated by comparing the resulting dense vectors. This design makes large-scale retrieval practical because document vectors can be precomputed and indexed using approximate nearest-neighbor search. Representative approaches such as DPR demonstrated that dense passage representations can replace or complement traditional sparse retrieval in open-domain question answering (\cite{dpr}). Other methods, such as ANCE, improved dense retrieval training by using hard negatives selected through approximate nearest-neighbor search, addressing the mismatch between training negatives and retrieval-time candidates (\cite{ance}).
+
+Despite their efficiency, single-vector dense retrieval models also introduce an important limitation: they compress the full semantic content of a document into one fixed-size representation. This compression can reduce fine-grained matching signals, especially when relevance depends on specific query terms, local phrase correspondences, or multiple weak semantic signals distributed across the document. Late-interaction models were proposed to address this issue by preserving token-level representations while still allowing efficient retrieval. ColBERT is one of the most influential models in this direction, as it independently encodes queries and documents with BERT and then applies a late-interaction mechanism based on token-level similarity (\cite{colbert}). ColBERTv2 further improves this architecture through more efficient retrieval and lightweight late interaction, reducing storage and computational costs while maintaining strong retrieval effectiveness (\cite{v2}).
+
+The present work is positioned within this late-interaction line of research. However, instead of using the ColBERT similarity matrix only as an intermediate structure for MaxSim aggregation, we investigate whether the full matrix can be exploited as a richer relevance representation. This shifts the focus from single-vector dense similarity and scalar aggregation toward learned pattern recognition over token-level query--document interactions.
+
+
+\subsection{CNN-based Interaction Models for Neural Ranking}
+
+Convolutional Neural Networks have also played an important role in neural information retrieval, particularly in models that treat query--document matching as an interaction-based learning problem. In contrast to representation-based models, which first encode queries and documents separately and then compare their final representations, interaction-based models construct explicit matching signals between query and document terms. These signals can be organized as similarity matrices, histograms, or local matching patterns, allowing neural networks to learn relevance from the structure of the interaction itself.
+
+Several neural ranking models have explored this idea. DRMM introduced a deep relevance matching architecture that focuses on query-term level matching and uses matching histograms to capture relevance signals (\cite{guo2016deep}). K-NRM extended neural ranking by applying kernel pooling over word-level similarity matrices, allowing the model to learn soft-matching patterns across different similarity levels (\cite{Xiong_2017}). PACRR further demonstrated the value of convolutional operations in IR by applying CNNs over query--document similarity matrices in order to model position-aware relevance patterns, proximity, and term dependencies (\cite{pacrr}). Similarly, Conv-KNRM used convolutional layers to represent n-grams and capture soft matches between query and document phrases, showing that convolutional architectures can model richer local matching structures than unigram-based methods (\cite{convknrm}).
+
+These approaches are important because they show that relevance is not always captured by isolated term similarities. Instead, useful retrieval evidence may appear as local regions, repeated patterns, proximity structures, or phrase-level correspondences within an interaction matrix. This observation is directly related to the motivation of the present work.
+
+
+\textit{Our Novelty:} Our approach differs from earlier CNN-based neural ranking models because it operates on similarity matrices generated by ColBERT's contextualized late-interaction mechanism. In other words, the input to the CNN is not a simple lexical or static embedding-based interaction matrix, but a contextualized token-level similarity map produced by a strong transformer-based retriever.
+
+Therefore, the proposed method combines two research directions: late-interaction dense retrieval and CNN-based interaction learning. ColBERT provides efficient contextualized token representations, while the CNN re-ranker learns structural patterns from the resulting similarity matrix. This allows the ranking process to move beyond MaxSim aggregation and exploit the matrix as a two-dimensional relevance signal.
+
+\section{Preliminaries}
+
+\section{Proposed Method}
+
+\subsection{Architectural Overview}
+
+\subsection{Late Interaction}
+
+\subsection{Training Methodology}
+
+\section{Tests and Evaluation}
+
+
+
+\subsection{Collections}
+The experimental evaluation was conducted using standard information retrieval collections that provide document corpora, query sets, and relevance judgments. Such collections are suitable for evaluating ranking models because they allow the comparison of retrieved documents against expert-defined or manually assessed relevance information. In this work, particular emphasis is placed on the Cystic Fibrosis Collection, which provides a focused biomedical retrieval scenario with concise scientific abstracts and well-defined information needs.
+
+The Cystic Fibrosis Collection (CFC) is a classical test collection in information retrieval. It consists of 1,239 documents related to cystic fibrosis, published between 1974 and 1979, together with 100 queries and their corresponding relevant documents (\cite{HearstCFDataset}). The documents are scientific abstracts from the biomedical domain, making the collection especially suitable for evaluating retrieval models in a specialized and semantically constrained setting. Compared with large heterogeneous web collections, CFC provides a compact but challenging retrieval environment, where relevant documents must be identified from short scientific texts that often contain domain-specific terminology. This characteristic makes the collection useful for examining whether a ranking model can capture semantic relevance beyond simple lexical overlap.
+
+
+\subsection{Training}
+
+\subsection{Ranking}
+
+\section{Conclusions, Limitations and Future Work}
+
+
+
+%% Use \subsection commands to start a subsection.
+\subsection{Example Subsection}
+\label{subsec1}
+
+Subsection text.
+
+%% Use \subsubsection, \paragraph, \subparagraph commands to 
+%% start 3rd, 4th and 5th level sections.
+%% Refer following link for more details.
+%% https://en.wikibooks.org/wiki/LaTeX/Document_Structure#Sectioning_commands
+
+\subsubsection{Mathematics}
+%% Inline mathematics is tagged between $ symbols.
+This is an example for the symbol $\alpha$ tagged as inline mathematics.
+
+%% Displayed equations can be tagged using various environments. 
+%% Single line equations can be tagged using the equation environment.
+\begin{equation}
+f(x) = (x+a)(x+b)
+\end{equation}
+
+%% Unnumbered equations are tagged using starred versions of the environment.
+%% amsmath package needs to be loaded for the starred version of equation environment.
+\begin{equation*}
+f(x) = (x+a)(x+b)
+\end{equation*}
+
+%% align or eqnarray environments can be used for multi line equations.
+%% & is used to mark alignment points in equations.
+%% \\ is used to end a row in a multiline equation.
+\begin{align}
+ f(x) &= (x+a)(x+b) \\
+      &= x^2 + (a+b)x + ab
+\end{align}
+
+\begin{eqnarray}
+ f(x) &=& (x+a)(x+b) \nonumber\\ %% If equation numbering is not needed for a row use \nonumber.
+      &=& x^2 + (a+b)x + ab
+\end{eqnarray}
+
+%% Unnumbered versions of align and eqnarray
+\begin{align*}
+ f(x) &= (x+a)(x+b) \\
+      &= x^2 + (a+b)x + ab
+\end{align*}
+
+\begin{eqnarray*}
+ f(x)&=& (x+a)(x+b) \\
+     &=& x^2 + (a+b)x + ab
+\end{eqnarray*}
+
+%% Refer following link for more details.
+%% https://en.wikibooks.org/wiki/LaTeX/Mathematics
+%% https://en.wikibooks.org/wiki/LaTeX/Advanced_Mathematics
+
+%% Use a table environment to create tables.
+%% Refer following link for more details.
+%% https://en.wikibooks.org/wiki/LaTeX/Tables
+\begin{table}[t]%% placement specifier
+%% Use tabular environment to tag the tabular data.
+%% https://en.wikibooks.org/wiki/LaTeX/Tables#The_tabular_environment
+\centering%% For centre alignment of tabular.
+\begin{tabular}{l c r}%% Table column specifiers
+%% Tabular cells are separated by &
+  1 & 2 & 3 \\ %% A tabular row ends with \\
+  4 & 5 & 6 \\
+  7 & 8 & 9 \\
+\end{tabular}
+%% Use \caption command for table caption and label.
+\caption{Table Caption}\label{fig1}
+\end{table}
+
+
+%% Use figure environment to create figures
+%% Refer following link for more details.
+%% https://en.wikibooks.org/wiki/LaTeX/Floats,_Figures_and_Captions
+\begin{figure}[t]%% placement specifier
+%% Use \includegraphics command to insert graphic files. Place graphics files in 
+%% working directory.
+\centering%% For centre alignment of image.
+\includegraphics[width=\columnwidth]{example-image-a}
+%% Use \caption command for figure caption and label.
+\caption{Figure Caption}\label{fig1}
+%% https://en.wikibooks.org/wiki/LaTeX/Importing_Graphics#Importing_external_graphics
+\end{figure}
+
+
+%% The Appendices part is started with the command \appendix;
+%% appendix sections are then done as normal sections
+\appendix
+\section{Example Appendix Section}
+\label{app1}
+
+Appendix text.
+
+%% For citations use: 
+%%       \citet{<label>} ==> Lamport (1994)
+%%       \citep{<label>} ==> (Lamport, 1994)
+%%
+Example citation, See \citet{lamport94}.
+
+%% If you have bib database file and want bibtex to generate the
+%% bibitems, please use
+%%
+\bibliographystyle{elsarticle-harv} 
+\bibliography{refrences}
+
+%% else use the following coding to input the bibitems directly in the
+%% TeX file.
+
+%% Refer following link for more details about bibliography and citations.
+%% https://en.wikibooks.org/wiki/LaTeX/Bibliography_Management
+
+
+\end{document}
+
+\endinput
+%%
+%% End of file `elsarticle-template-harv.tex'.
+
+
