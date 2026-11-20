@@ -42,6 +42,10 @@
 \usepackage{amsmath}
 %% The amsthm package provides extended theorem environments
 \usepackage{amsthm}
+%% Added for the architecture figure and tables
+\usepackage{booktabs}
+\usepackage{tikz}
+\usetikzlibrary{positioning,arrows.meta}
 
 %% The lineno packages adds line numbers. Start line numbering with
 %% \begin{linenumbers}, end it with \end{linenumbers}. Or switch it on
@@ -195,8 +199,9 @@ The main contributions of this work are summarized as follows:
 \end{itemize}
 
 \section{Related Work}
+\label{sec:related}
 
-\subsection{Classical, Dense, and Learned Sparse Retrieval Models} %%%%%%%%%%%%needs checking! 
+\subsection{Classical, Dense, and Learned Sparse Retrieval Models}
 
 Classical information retrieval models provide the foundation for many modern ranking systems. The Vector Space Model represents documents and queries as weighted term vectors, where relevance is commonly estimated through cosine similarity. In this setting, TF-IDF assigns higher weights to terms that are frequent in a document but relatively rare in the overall collection, allowing the ranking function to emphasize discriminative terms rather than common vocabulary (\cite{salton_vector_1975}). Although TF-IDF is simple and efficient, it remains based on sparse lexical overlap and therefore has limited ability to capture semantic similarity when queries and documents use different vocabulary.
 
@@ -206,42 +211,238 @@ Pseudo-relevance feedback methods attempt to improve retrieval by expanding or r
 
 Language-modeling approaches formulate retrieval as a probability estimation problem. In the Query Likelihood framework, each document is treated as a language model, and documents are ranked according to the probability that their model would generate the query (\cite{ponte1998language}). Since document-level language models are sparse, smoothing is required to avoid assigning zero probability to unseen query terms. Dirichlet smoothing addresses this issue by combining document-specific term statistics with collection-level statistics, with the smoothing strength controlled by a parameter (\cite{zhai2001smoothing}).
 
-Dense retrieval models move away from explicit lexical overlap by encoding queries and documents into continuous vector representations. Sentence-transformer-style bi-encoders produce dense embeddings that can be compared through vector similarity, making them suitable for semantic search and large-scale retrieval using vector indexes (\cite{reimers2019sentencebert}). BGE belongs to this family of general embedding models and provides dense representations trained for retrieval and semantic similarity tasks (\cite{xiao2024cpack}). Such models can capture semantic relatedness beyond exact term matching, but they may also lose fine-grained lexical signals when long or complex texts are compressed into a single vector.
+Dense retrieval models move away from explicit lexical overlap by encoding queries and documents into continuous vector representations. Sentence-transformer-style bi-encoders produce dense embeddings that can be compared through vector similarity, making them suitable for semantic search and large-scale retrieval using vector indexes (\cite{reimers2019sentencebert}). BGE belongs to this family of general embedding models and provides dense representations trained for retrieval and semantic similarity tasks (\cite{xiao2024cpack}). More recent general-purpose embedders unify several retrieval modes in a single encoder: BGE-M3, for example, produces dense, learned-sparse and multi-vector representations from one model and supports more than 100 languages \citep{chen2024m3}. Such models can capture semantic relatedness beyond exact term matching, but they may also lose fine-grained lexical signals when long or complex texts are compressed into a single vector. Moreover, general-purpose encoders often transfer poorly to specialised domains, which has motivated domain-specific retrievers such as MedCPT, a biomedical retriever--re-ranker pair trained contrastively on 255 million query--article pairs collected from PubMed search logs \citep{jin2023medcpt}. This domain gap is directly relevant to the biomedical collection used in the present study.
 
 Learned sparse retrieval models attempt to combine the efficiency and interpretability of sparse retrieval with the semantic expansion capabilities of neural language models. SPLADE generates sparse high-dimensional representations for queries and documents by using a masked language model to assign weights to vocabulary terms, including expansion terms that may not appear explicitly in the input text (\cite{formal2021splade}). As a result, SPLADE can operate with inverted indexes like traditional sparse models while benefiting from neural term expansion and learned weighting.
 
-\subsection{Dense Information Retrieval Models}
+\subsection{Dense and Late-Interaction Retrieval}
 Dense information retrieval models emerged as a response to the limitations of sparse lexical matching, where documents and queries are represented mainly through exact term overlap. Instead of relying only on term-frequency statistics, dense retrieval methods map queries and documents into continuous vector spaces, where semantic similarity can be estimated through vector operations such as dot product or cosine similarity. Early representation-learning approaches, including word embeddings such as Word2Vec and GloVe, showed that distributional semantic information can be encoded in dense vector spaces (\cite{w2v,gloveeee}). Later, transformer-based language models, especially BERT, enabled contextualized token and sentence representations, providing a stronger basis for semantic matching in retrieval tasks (\cite{bert,pretrained}).
 
 A major family of dense retrieval systems follows the dual-encoder architecture. In these models, the query and the document are encoded independently, and their relevance is estimated by comparing the resulting dense vectors. This design makes large-scale retrieval practical because document vectors can be precomputed and indexed using approximate nearest-neighbor search. Representative approaches such as DPR demonstrated that dense passage representations can replace or complement traditional sparse retrieval in open-domain question answering (\cite{dpr}). Other methods, such as ANCE, improved dense retrieval training by using hard negatives selected through approximate nearest-neighbor search, addressing the mismatch between training negatives and retrieval-time candidates (\cite{ance}).
 
 Despite their efficiency, single-vector dense retrieval models also introduce an important limitation: they compress the full semantic content of a document into one fixed-size representation. This compression can reduce fine-grained matching signals, especially when relevance depends on specific query terms, local phrase correspondences, or multiple weak semantic signals distributed across the document. Late-interaction models were proposed to address this issue by preserving token-level representations while still allowing efficient retrieval. ColBERT is one of the most influential models in this direction, as it independently encodes queries and documents with BERT and then applies a late-interaction mechanism based on token-level similarity (\cite{colbert}). ColBERTv2 further improves this architecture through more efficient retrieval and lightweight late interaction, reducing storage and computational costs while maintaining strong retrieval effectiveness (\cite{v2}).
 
+The PLAID engine made late interaction practical at scale by treating each passage as a lightweight bag of centroids, which allows low-scoring passages to be pruned before exact scoring; it reduces search latency by up to $7\times$ on GPU and $45\times$ on CPU relative to vanilla ColBERTv2 \citep{santhanam2022plaid}. The pipeline proposed in this paper relies directly on this centroid-based candidate generation stage (Section~\ref{sec:arch}). Subsequent work has continued to target the cost of multi-vector search. XTR introduces a training objective that encourages the model to retrieve the most salient document tokens first, so that candidates can be scored from the retrieved tokens alone \citep{lee2023xtr}. MUVERA reduces multi-vector search to single-vector maximum inner product search through fixed-dimensional encodings whose inner product approximates the multi-vector similarity \citep{dhulipala2024muvera}, and LEMUR learns a compact latent representation with a one-hidden-layer network, uses it for fast candidate retrieval, and applies exact MaxSim only to a short list \citep{jaasaari2026lemur}. In parallel, the late-interaction paradigm has been extended to multilingual retrieval \citep{jha2024jinacolbert}, to unified multi-functional embedders \citep{chen2024m3}, and to visually rich documents, where ColPali applies late interaction to multi-vector embeddings of page images produced by a vision--language model \citep{faysse2025colpali}. Common to all of these systems is that the final relevance score is still obtained with the MaxSim operator or an approximation of it.
+
 The present work is positioned within this late-interaction line of research. However, instead of using the ColBERT similarity matrix only as an intermediate structure for MaxSim aggregation, we investigate whether the full matrix can be exploited as a richer relevance representation. This shifts the focus from single-vector dense similarity and scalar aggregation toward learned pattern recognition over token-level query--document interactions.
 
+\subsection{Beyond MaxSim: Learned Late-Interaction Scoring}
+
+A growing body of work questions whether MaxSim is the most appropriate aggregation function for late interaction. ALIGNER formulates multi-vector retrieval as sparse alignment between query and document tokens, learning which token pairs should be aligned together with per-token saliences that allow a large fraction of token vectors to be pruned \citep{qian2022aligner}. Token-importance approaches retain the MaxSim structure but replace the uniform sum over query tokens with a weighted sum: \citet{archish2025tokenimportance} learn per-token weights while keeping the multi-vector representations fixed, and TRIAL additionally models relations between tokens, so that semantic units split across several sub-word tokens and low-content words are handled explicitly during scoring \citep{kang2025trial}. Closest to our work, LITE replaces MaxSim with a learnable scorer in which the query--document token-similarity matrix is passed through MLPs that output the final relevance score; its authors prove that this scorer is a universal approximator of continuous scoring functions and show gains over ColBERT on in-domain and zero-shot re-ranking \citep{ji2024lite}. Hypencoder pursues a related goal from a different angle, replacing the vector inner product altogether with a small query-specific neural network whose weights are generated by a hypernetwork \citep{killingback2025hypencoder}.
+
+These studies share our premise that a fixed, hand-crafted aggregation discards useful relevance evidence, but they differ from the approach presented here in two respects. First, most of them train the scoring function end-to-end together with the encoder on large collections such as MS MARCO (token-importance weighting \citep{archish2025tokenimportance} being an exception, as it keeps the representations fixed), whereas we keep the ColBERT encoder and its compressed index frozen and train only a lightweight post-hoc re-ranker on a small collection. Second, they operate on the similarity matrix through alignment matrices, token weights or row- and column-wise MLPs, none of which builds in the locality and translation equivariance of convolutions. Our CNN instead treats the matrix as an image, so that a learned filter responds to the same local configuration, for example a diagonal run of consecutive query--document matches, wherever it occurs in the document.
 
 \subsection{CNN-based Interaction Models for Neural Ranking}
 
 Convolutional Neural Networks have also played an important role in neural information retrieval, particularly in models that treat query--document matching as an interaction-based learning problem. In contrast to representation-based models, which first encode queries and documents separately and then compare their final representations, interaction-based models construct explicit matching signals between query and document terms. These signals can be organized as similarity matrices, histograms, or local matching patterns, allowing neural networks to learn relevance from the structure of the interaction itself.
 
-Several neural ranking models have explored this idea. DRMM introduced a deep relevance matching architecture that focuses on query-term level matching and uses matching histograms to capture relevance signals (\cite{guo2016deep}). K-NRM extended neural ranking by applying kernel pooling over word-level similarity matrices, allowing the model to learn soft-matching patterns across different similarity levels (\cite{Xiong_2017}). PACRR further demonstrated the value of convolutional operations in IR by applying CNNs over query--document similarity matrices in order to model position-aware relevance patterns, proximity, and term dependencies (\cite{pacrr}). Similarly, Conv-KNRM used convolutional layers to represent n-grams and capture soft matches between query and document phrases, showing that convolutional architectures can model richer local matching structures than unigram-based methods (\cite{convknrm}).
+The idea of reading a word-level interaction matrix as an image goes back to MatchPyramid, which constructs a matching matrix of word similarities and applies a CNN to capture n-gram and n-term matching signals in a layer-by-layer fashion, by analogy with the compositional hierarchies of image recognition \citep{pang2016matchpyramid}. Several neural ranking models have explored related ideas. DRMM introduced a deep relevance matching architecture that focuses on query-term level matching and uses matching histograms to capture relevance signals (\cite{guo2016deep}). K-NRM extended neural ranking by applying kernel pooling over word-level similarity matrices, allowing the model to learn soft-matching patterns across different similarity levels (\cite{Xiong_2017}). PACRR further demonstrated the value of convolutional operations in IR by applying CNNs over query--document similarity matrices in order to model position-aware relevance patterns, proximity, and term dependencies (\cite{pacrr}). Similarly, Conv-KNRM used convolutional layers to represent n-grams and capture soft matches between query and document phrases, showing that convolutional architectures can model richer local matching structures than unigram-based methods (\cite{convknrm}). With the advent of pretrained transformers, CEDR showed that PACRR, KNRM and DRMM all benefit when their similarity matrices are built from contextualized ELMo or BERT token representations instead of static word embeddings, and that combining them with BERT's classification representation improves ranking further \citep{macavaney2019cedr}.
 
 These approaches are important because they show that relevance is not always captured by isolated term similarities. Instead, useful retrieval evidence may appear as local regions, repeated patterns, proximity structures, or phrase-level correspondences within an interaction matrix. This observation is directly related to the motivation of the present work.
 
-
-\textit{Our Novelty:} Our approach differs from earlier CNN-based neural ranking models because it operates on similarity matrices generated by ColBERT's contextualized late-interaction mechanism. In other words, the input to the CNN is not a simple lexical or static embedding-based interaction matrix, but a contextualized token-level similarity map produced by a strong transformer-based retriever.
+\textit{Our Novelty:} Our approach is closest in spirit to MatchPyramid and CEDR, but it differs in where the interaction matrix comes from and in how it is used. In CEDR, the contextualized representations are produced by running BERT over the query and the document at ranking time, and the interaction model is trained jointly with the encoder. In our case, the input to the CNN is the matrix that ColBERT's late-interaction mechanism already computes from an independently encoded query and pre-indexed, compressed document embeddings. It is therefore available at re-ranking time without any additional transformer pass over the document, and the CNN is trained post hoc while ColBERT remains frozen. In other words, the CNN replaces only the final aggregation step of an efficient retriever, not its encoder.
 
 Therefore, the proposed method combines two research directions: late-interaction dense retrieval and CNN-based interaction learning. ColBERT provides efficient contextualized token representations, while the CNN re-ranker learns structural patterns from the resulting similarity matrix. This allows the ranking process to move beyond MaxSim aggregation and exploit the matrix as a two-dimensional relevance signal.
 
+\subsection{LLM-based Re-ranking}
+
+At the other end of the cost spectrum, large language models have recently been used directly as re-rankers. RankGPT showed that instructed LLMs such as ChatGPT and GPT-4 can deliver re-ranking quality competitive with, or better than, supervised methods when prompted to output a permutation of the candidate passages \citep{sun2023rankgpt}. RankZephyr distilled this listwise ability into an open 7B-parameter model \citep{pradeep2023rankzephyr}, and Rank1 distils reasoning traces from reasoning LLMs to obtain re-rankers that exploit test-time compute \citep{weller2025rank1}. These models are highly effective but have billions of parameters and require a full LLM forward pass over every candidate list. The CNN re-ranker studied here sits at the opposite extreme: it has fewer than $2\times10^{4}$ parameters, reuses the token embeddings already stored in the ColBERT index, and can therefore score every candidate returned by first-stage retrieval at negligible cost. Using the CNN as an intermediate stage in front of an LLM re-ranker is a natural combination that we leave for future work.
+
 \section{Preliminaries}
+\label{sec:prelim}
+
+\paragraph{Notation and late interaction}
+Let $\mathcal{D}$ be a document collection and $q$ a query. ColBERT encodes the query and each document independently with a shared BERT backbone followed by a linear projection to $d=128$ dimensions and $\ell_2$ normalization \citep{colbert,v2}. The query encoder produces a matrix $\mathbf{Q}=E_Q(q)\in\mathbb{R}^{m\times d}$, where the query is padded with \texttt{[MASK]} tokens or truncated to exactly $m=32$ tokens (query augmentation). The document encoder produces $\mathbf{D}=E_D(d)\in\mathbb{R}^{n_d\times d}$, where $n_d$ is the number of retained document tokens, which varies from document to document and is bounded by a maximum document length. The token-level similarity matrix of the pair $(q,d)$ is
+\begin{equation}
+\mathbf{S}(q,d) = \mathbf{Q}\,\mathbf{D}^{\top} \in \mathbb{R}^{m\times n_d}, \qquad S_{ij} = \mathbf{q}_i^{\top}\mathbf{d}_j ,
+\label{eq:simmatrix}
+\end{equation}
+and, because all token vectors are unit-normalized, each entry $S_{ij}\in[-1,1]$ is the cosine similarity between the $i$-th query token and the $j$-th document token. Rows thus correspond to query tokens and columns to document tokens.
+
+\paragraph{MaxSim aggregation}
+ColBERT reduces this matrix to a scalar with the MaxSim operator,
+\begin{equation}
+s_{\mathrm{MaxSim}}(q,d) = \sum_{i=1}^{m} \max_{1\le j\le n_d} S_{ij}.
+\label{eq:maxsim}
+\end{equation}
+Equation~\eqref{eq:maxsim} uses only $m$ of the $m\times n_d$ entries of $\mathbf{S}$. It is invariant to any permutation of the document tokens, it cannot distinguish a document in which a query token is matched once from one in which it is matched many times, and it ignores whether the best matches of consecutive query tokens fall on consecutive document positions (i.e., whether a query phrase is matched as a phrase). These are precisely the kinds of structure that become visible when $\mathbf{S}$ is viewed as an image (Figure~\ref{fig:pipeline}).
+
+\paragraph{Compressed indexing and candidate generation}
+ColBERTv2 stores each document token embedding as the identifier of its nearest centroid plus a residual quantized to $b$ bits per dimension \citep{v2}. At query time, the PLAID engine \citep{santhanam2022plaid} first identifies, for each query token, the \texttt{ncells} closest centroids; the passages containing those centroids form an initial candidate pool, which is filtered with centroid scores before the surviving passages are decompressed and scored exactly with Equation~\eqref{eq:maxsim}. We denote by $\mathcal{C}(q)\subseteq\mathcal{D}$ the candidate set produced by this candidate generation stage. All matrices used in this work are computed from the same decompressed embeddings that ColBERT itself uses for exact MaxSim scoring.
 
 \section{Proposed Method}
+\label{sec:method}
 
 \subsection{Architectural Overview}
+\label{sec:arch}
+
+\begin{figure*}[t]
+\centering
+\begin{tikzpicture}[
+  every node/.style={font=\scriptsize},
+  box/.style={draw, rounded corners=2pt, align=center, text width=20mm, minimum height=10mm, inner sep=2pt},
+  frozen/.style={box, fill=gray!12},
+  learned/.style={box, fill=blue!8, draw=blue!60!black},
+  data/.style={draw, align=center, text width=14mm, minimum height=8mm, inner sep=2pt, fill=yellow!10},
+  arr/.style={-{Stealth[length=1.8mm]}, thick},
+  lbl/.style={font=\tiny\itshape, text=black!75, fill=white, inner sep=1pt}
+]
+% online row (y = 0)
+\node[data]    (query)  at (0,0)     {Query $q$};
+\node[frozen]  (qenc)   at (2.35,0)  {ColBERT query\\encoder $E_Q$};
+\node[frozen]  (cand)   at (4.95,0)  {Candidate generation\\(PLAID stage 1)};
+\node[frozen]  (sim)    at (7.55,0)  {Similarity matrices\\$\mathbf{S}=\mathbf{Q}\mathbf{D}^{\top}\in\mathbb{R}^{32\times n_d}$};
+\node[learned] (resize) at (10.15,0) {Bilinear resize\\$32\times n_d\rightarrow32\times128$};
+\node[learned] (cnn)    at (12.75,0) {CNN scorer $f_\theta$\\2 conv blocks, global max pool, linear};
+\node[learned] (rank)   at (15.35,0) {Re-ranked list:\\sort $\mathcal{C}(q)$ by $f_\theta(\tilde{\mathbf{S}})$};
+% offline row (y = 1.9)
+\node[data]    (docs)   at (0,1.9)    {Collection $\mathcal{D}$};
+\node[frozen]  (denc)   at (2.35,1.9) {ColBERT document\\encoder $E_D$};
+\node[frozen]  (index)  at (6.25,1.9) {Compressed index\\centroids + 4-bit residuals};
+% baseline
+\node[box, dashed] (maxsim) at (7.55,-1.75) {Baseline: sort $\mathcal{C}(q)$\\by $s_{\mathrm{MaxSim}}$ (Eq.~\ref{eq:maxsim})};
+
+\draw[arr] (docs) -- (denc);
+\draw[arr] (denc) -- node[lbl, above=1pt]{offline} (index);
+\draw[arr] (query) -- (qenc);
+\draw[arr] (qenc) -- node[lbl, above=1pt]{$\mathbf{Q}$} (cand);
+\draw[arr] (cand) -- node[lbl, above=1pt]{$\mathcal{C}(q)$} (sim);
+\draw[arr] (sim) -- (resize);
+\draw[arr] (resize) -- (cnn);
+\draw[arr] (cnn) -- (rank);
+\draw[arr] (index.south -| cand.north) -- node[lbl, right=1pt]{centroids} (cand.north);
+\draw[arr] (index.south -| sim.north) -- node[lbl, right=1pt]{decompressed $\mathbf{D}$} (sim.north);
+\draw[arr, dashed] (sim) -- node[lbl, right=1pt]{same matrices} (maxsim);
+\end{tikzpicture}
+\caption{Overview of the proposed ColBERT+CNN re-ranking pipeline. Grey components belong to a frozen ColBERT/PLAID retriever; blue components are introduced in this work and are the only trainable part. The MaxSim baseline (dashed) and the CNN operate on exactly the same similarity matrices and candidate sets, so the only difference between them is the aggregation function.}
+\label{fig:pipeline}
+\end{figure*}
+
+The proposed system keeps the ColBERT retriever intact and replaces only its final aggregation step. As shown in Figure~\ref{fig:pipeline}, it consists of four stages.
+
+\textit{(1) Offline indexing.} The collection is encoded once with the ColBERT document encoder and stored in a compressed ColBERTv2 index with $b=4$ bits per residual dimension.
+
+\textit{(2) Candidate generation.} For each query, the PLAID candidate generation stage returns $\mathcal{C}(q)$. We run the searcher with a depth of $k=1000$, which, in the ColBERT implementation we build on, sets \texttt{ncells}$=4$, a centroid score threshold of $0.4$ and \texttt{ndocs}$=4096$. On a collection of the size used here, these settings yield large candidate sets, so that $\mathcal{C}(q)$ contains most relevant documents (Table~\ref{tab:splits}) and the re-ranker, rather than candidate recall, determines ranking quality.
+
+\textit{(3) Similarity-matrix extraction.} For every $d\in\mathcal{C}(q)$, the document's token embeddings are reconstructed from the index, multiplied with the query embeddings according to Equation~\eqref{eq:simmatrix}, and transposed so that rows correspond to the $m=32$ query tokens and columns to the $n_d$ document tokens. To make the extraction affordable, documents are processed in batches on the GPU and the matrices of each query are written to a single HDF5 file in half precision with gzip compression. Matrices are exported only for the candidate set rather than for the full collection, which reduces storage by a factor proportional to $|\mathcal{D}|/|\mathcal{C}(q)|$. After this step the matrices are fully decoupled from ColBERT: neither the model nor the index is needed to train or apply the CNN.
+
+\textit{(4) CNN scoring and re-ranking.} Each matrix is resized to a fixed shape, scored by the CNN, and the candidates of each query are sorted by the resulting score.
+
+\paragraph{Input normalization}
+Convolutional layers followed by a fixed-size head require inputs of a fixed spatial size, whereas $n_d$ varies across documents. We map every matrix to a canonical $H\times W = 32\times128$ grid with bilinear interpolation,
+\begin{equation}
+\tilde{\mathbf{S}} = \mathrm{Resize}_{32\times128}\big(\mathbf{S}(q,d)\big) \in \mathbb{R}^{32\times128}.
+\label{eq:resize}
+\end{equation}
+Because the query dimension is already fixed to $m=32$ by query augmentation, the resize leaves the query axis unchanged and acts only along the document axis, stretching short documents and compressing long ones. In preliminary experiments we used zero-padding and truncation instead; resizing was preferred because it keeps every region of the document represented in the input and does not introduce artificial zero-similarity regions, at the cost of a document-length-dependent change of horizontal scale. The raw cosine values are kept without per-matrix standardization, since their absolute magnitude is itself a relevance signal; standardizing each matrix would make a uniformly weak match indistinguishable from a uniformly strong one.
+
+\paragraph{CNN scorer}
+The scorer $f_\theta$ is a compact two-block convolutional network (Table~\ref{tab:cnn}). Each block applies a $6\times6$ convolution with padding $1$, batch normalization, a SELU non-linearity and $2\times2$ max pooling:
+\begin{align}
+\mathbf{H}_1 &= \mathrm{MaxPool}_{2\times2}\Big(\mathrm{SELU}\big(\mathrm{BN}(\mathrm{Conv}^{1\rightarrow32}_{6\times6}(\tilde{\mathbf{S}}))\big)\Big), \\
+\mathbf{H}_2 &= \mathrm{MaxPool}_{2\times2}\Big(\mathrm{SELU}\big(\mathrm{BN}(\mathrm{Conv}^{32\rightarrow16}_{6\times6}(\mathbf{H}_1))\big)\Big), \\
+\mathbf{g} &= \mathrm{GlobalMaxPool}(\mathbf{H}_2)\in\mathbb{R}^{16}, \\
+z &= \mathbf{w}^{\top}\,\mathrm{Dropout}_{0.3}(\mathbf{g}) + b .
+\end{align}
+The output $z\in\mathbb{R}$ is a relevance logit; $\sigma(z)$ can be read as the estimated probability that $d$ is relevant to $q$, and since the sigmoid is monotone, candidates are ranked directly by $z$. Each unit of $\mathbf{H}_2$ has a receptive field of $19\times19$ cells of $\tilde{\mathbf{S}}$, i.e., it covers more than half of the query tokens and a window of roughly $15\%$ of the (resized) document, which is large enough to capture phrase-level diagonals, clusters of high similarity and runs of consecutive matches.
+
+The global max pooling layer gives the architecture a natural interpretation relative to MaxSim. MaxSim takes, for every query token, the single strongest similarity in its row. The CNN instead takes, for each of its 16 learned filters, the strongest occurrence of a learned local \emph{pattern} anywhere in the matrix, and then combines these 16 pattern detectors with learned weights. The model thus remains a max-based aggregator and keeps the inductive bias that strong local evidence matters most, but the evidence it looks for is learned from data rather than fixed to individual cell values. With 19{,}745 parameters (Table~\ref{tab:cnn}), the scorer is several orders of magnitude smaller than the BERT backbone of ColBERT, so the additional cost of re-ranking is dominated by reading the document embeddings, which ColBERT must do anyway for exact MaxSim scoring.
+
+\begin{table}[t]
+\centering
+\footnotesize
+\caption{Layer-by-layer specification of the CNN scorer for a $32\times128$ input. Output shapes are channels $\times$ height $\times$ width.}
+\label{tab:cnn}
+\begin{tabular}{@{}llr@{}}
+\toprule
+Layer & Output shape & Parameters \\
+\midrule
+Input $\tilde{\mathbf{S}}$ & $1\times32\times128$ & -- \\
+Conv $6\times6$, 32 filters, pad 1 & $32\times29\times125$ & 1{,}184 \\
+BatchNorm + SELU & $32\times29\times125$ & 64 \\
+MaxPool $2\times2$ & $32\times14\times62$ & -- \\
+Conv $6\times6$, 16 filters, pad 1 & $16\times11\times59$ & 18{,}448 \\
+BatchNorm + SELU & $16\times11\times59$ & 32 \\
+MaxPool $2\times2$ & $16\times5\times29$ & -- \\
+Global max pool & $16$ & -- \\
+Dropout ($p=0.3$) & $16$ & -- \\
+Linear $16\rightarrow1$ & $1$ & 17 \\
+\midrule
+Total & & 19{,}745 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+We also explored lighter single-block variants with 8, 16 and 32 filters (a single convolution followed by global max pooling and a linear layer). The two-block network described above is the configuration used in all reported experiments.
+%% NOTE (authors): add one sentence on why the 32-16 model was chosen over the single-block variants
+%% (e.g., the comparison in Sec. 5.4 of the thesis).
 
 \subsection{Late Interaction}
+\label{sec:li}
+
+The CNN is designed to preserve, rather than replace, the late-interaction properties of ColBERT. Queries and documents are still encoded independently; document representations are still computed once, offline, and stored in the compressed index; and the only query-time interaction between them is still the matrix product of Equation~\eqref{eq:simmatrix}. What changes is the function applied to that product: the MaxSim reduction of Equation~\eqref{eq:maxsim} is replaced by the learned function $f_\theta$. Because both scorers consume identical matrices over identical candidate sets, any difference in effectiveness between them can be attributed to the aggregation function alone.
+
+The quality of the matrices, however, depends on how well the underlying encoder is adapted to the target collection, and a central question of this work is how that quality interacts with learned aggregation. We therefore instantiate the backbone at three levels of adaptation, all sharing the same architecture ($d=128$, $m=32$, cosine similarity, 4-bit residual compression):
+
+\begin{itemize}
+    \item \textbf{Untuned.} The publicly released pretrained ColBERT checkpoint\footnote{\texttt{colbert-ir/colbertv1.9} on the Hugging Face Hub.}, trained on MS~MARCO \citep{msmarco} and applied to the target collection without any adaptation.
+    \item \textbf{Medium-tuned.} The same checkpoint fine-tuned on triplets derived from the target collection's relevance judgements for 602 optimization steps.
+    \item \textbf{Fully tuned.} The same fine-tuning continued to 1{,}204 steps, i.e., approximately one full pass over the training triplets at the batch size used.
+\end{itemize}
+
+Fine-tuning uses ColBERT's standard pairwise objective with one positive and one negative document per query (\texttt{nway}$=2$), batch size 4, learning rate $10^{-4}$ with linear warm-up, a maximum document length of 180 tokens and no in-batch negatives. Each triplet pairs a relevant document with a non-relevant document sampled uniformly at random from the rest of the collection.
+%% NOTE (authors): the fine-tuning script reads CF_DataSet/triplets.jsonl, which is generated from ALL
+%% 100 CF queries -- including the 15 test queries used to evaluate the CNN. If this is what was run,
+%% the tuned ColBERT models have seen the test queries. Please either confirm the triplets were
+%% restricted to the 80 training queries, or re-run fine-tuning with test queries excluded.
+%% NOTE (authors): warmup is set to 20,000 steps in train_colbert_v2.py, which is longer than the
+%% 602/1,204 steps trained, so the learning rate never reaches 1e-4. Consider reporting this explicitly.
+Each of the three backbones is indexed separately, produces its own candidate sets $\mathcal{C}(q)$ and its own similarity matrices, and is paired with its own independently trained CNN. Qualitatively, increasing adaptation is expected to change the appearance of the matrices: matrices produced by the untuned model tend to be noisy, with faint or broken high-similarity diagonals and spurious bright regions caused by generic matches, whereas matrices produced by the fully tuned model tend to show sharp, almost binary matches on a dark background. The three settings therefore probe the CNN under progressively cleaner inputs, and test whether learned aggregation still adds value once MaxSim is operating on well-separated similarities.
 
 \subsection{Training Methodology}
+\label{sec:training}
+
+\paragraph{Query-level splits}
+The queries are divided at the query level into training (80\%), validation (5\%) and test (15\%) sets using a fixed random seed, so that no query contributes matrices to more than one split. On the 100 queries of the Cystic Fibrosis collection this gives 80 training, 5 validation and 15 test queries. The same split is used for all three backbones.
+
+\paragraph{Hard negatives from the retriever}
+Training pairs are drawn from the same distribution that the CNN faces at test time, namely the candidate sets returned by ColBERT. For a training or validation query $q$ with relevant set $\mathcal{R}(q)$, the positives are the relevant documents that the retriever actually returns, $\mathcal{P}(q)=\mathcal{R}(q)\cap\mathcal{C}(q)$, and the negatives are the retrieved non-relevant documents, $\mathcal{N}(q)=\mathcal{C}(q)\setminus\mathcal{R}(q)$. For every $d^{+}\in\mathcal{P}(q)$ we sample one $d^{-}$ uniformly from $\mathcal{N}(q)$, which yields a class-balanced set of triplets $(q,d^{+},d^{-})$. Every triplet contributes two labelled examples, $(\tilde{\mathbf{S}}(q,d^{+}),1)$ and $(\tilde{\mathbf{S}}(q,d^{-}),0)$. Because $\mathcal{N}(q)$ consists of documents that ColBERT itself considered plausible, these negatives are considerably harder than random ones, and they differ between backbones because each backbone produces its own candidate sets (Table~\ref{tab:splits}).
+
+\begin{table}[t]
+\centering
+\footnotesize
+\caption{Training data for the CNN under each ColBERT backbone. A triplet yields one positive and one negative matrix. Test queries are evaluated on their full candidate sets against all relevance judgements.}
+\label{tab:splits}
+\begin{tabular}{@{}lrrr@{}}
+\toprule
+ & Untuned & Medium-tuned & Fully tuned \\
+\midrule
+Training triplets (80 queries) & 4{,}048 & 3{,}661 & 3{,}445 \\
+Validation triplets (5 queries) & 194 & 169 & 177 \\
+Training epochs & 40 & 80 & 50 \\
+\midrule
+Test queries / relevant pairs & \multicolumn{3}{c}{15 / 577} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\paragraph{Objective and optimization}
+The CNN is trained as a pointwise binary classifier with the binary cross-entropy loss on logits,
+\begin{equation}
+\mathcal{L}(\theta) = -\frac{1}{N}\sum_{k=1}^{N}\Big[y_k\log\sigma\big(f_\theta(\tilde{\mathbf{S}}_k)\big) + (1-y_k)\log\Big(1-\sigma\big(f_\theta(\tilde{\mathbf{S}}_k)\big)\Big)\Big],
+\label{eq:bce}
+\end{equation}
+where $y_k\in\{0,1\}$ is the relevance label of the $k$-th matrix. We use Adam \citep{Kingma2014Adam} with a learning rate of $10^{-4}$ and a mini-batch size of 4, and train for the number of epochs listed in Table~\ref{tab:splits}. After each epoch, the model is evaluated on the validation pairs, and the checkpoint with the highest validation accuracy is retained; the checkpoints of the last 20 epochs are also kept for analysis.
+
+The training objective and the evaluation task are deliberately different. During training the CNN answers an absolute question, namely whether a single matrix depicts a relevant pair, whereas at test time only the relative order of its scores within $\mathcal{C}(q)$ matters. A checkpoint with slightly lower classification accuracy can therefore produce a better ranking, and validation accuracy is only a proxy for ranking quality.
+%% NOTE (authors): eval_sweep_best_model.py selects the best of the last-20 checkpoints using MAP/MRR on
+%% test_triplets_hard.jsonl, i.e., on the TEST queries. If the reported numbers come from that sweep,
+%% checkpoint selection used test labels. State the final selection rule here, and if possible select
+%% on the validation queries instead (or report the median over the last-20 checkpoints).
+
+\paragraph{Inference and baselines}
+At test time, every candidate in $\mathcal{C}(q)$ is scored by the trained CNN and the candidates are sorted by decreasing logit. We compare against two baselines computed on the same candidate sets and the same stored matrices: the order in which candidates are returned by the candidate generation stage, and MaxSim re-ranking with Equation~\eqref{eq:maxsim}. All rankings are evaluated with MAP, MRR and Precision@$k$ at several ranking depths.
+
 
 \section{Tests and Evaluation}
 
